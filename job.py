@@ -27,7 +27,7 @@ def get_forecast(city):
     return output
 
 def main():
-    df = pd.read_excel("maillist.xlsx")
+    df = pd.read_csv("maillist.csv")
     grouped = df.groupby("sehir")
 
     for sehir, group in grouped:
