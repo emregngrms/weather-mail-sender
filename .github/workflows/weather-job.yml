@@ -1,0 +1,32 @@
+name: Weekly Weather Mailer
+
+on:
+  schedule:
+    - cron: '0 20 * * 0'  # Pazar 23:00 Türkiye saati
+  workflow_dispatch:      # << BU SATIR ELLE ÇALIŞTIRMA İÇİN ZORUNLU
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repo klonla
+        uses: actions/checkout@v3
+
+      - name: Python yükle
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Gereksinimleri yükle
+        run: |
+          pip install -r requirements.txt
+
+      - name: Ortam değişkenlerini ayarla
+        run: |
+          echo "WEATHERSTACK_API_KEY=${{ secrets.WEATHERSTACK_API_KEY }}" >> $GITHUB_ENV
+          echo "EMAIL=${{ secrets.EMAIL }}" >> $GITHUB_ENV
+          echo "EMAIL_PASSWORD=${{ secrets.EMAIL_PASSWORD }}" >> $GITHUB_ENV
+
+      - name: Mail gönderim scriptini çalıştır
+        run: python job.py
