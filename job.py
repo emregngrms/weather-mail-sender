@@ -5,7 +5,6 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-# Ortam değişkenlerini al
 API_KEY = os.getenv("OPENWEATHER_API_KEY")
 EMAIL = os.getenv("EMAIL")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
@@ -15,10 +14,9 @@ def get_forecast(city):
     response = requests.get(url)
     data = response.json()
 
+    # DEBUG - log api cevabı
+    print(f"API cevabı ({city}):", data)
 
-      # Bu satırı geçici olarak ekleyip sonucu GitHub Actions'ta göreceğiz
-    print("API cevabı:", data)
-    
     if "list" not in data:
         return f"{city} için hava durumu alınamadı: {data.get('message', 'Bilinmeyen hata')}"
 
@@ -26,12 +24,12 @@ def get_forecast(city):
     dates_added = set()
 
     for entry in data["list"]:
-        dt_txt = entry["dt_txt"].split(" ")[0]
-        if dt_txt not in dates_added:
+        date = entry["dt_txt"].split(" ")[0]
+        if date not in dates_added:
             temp = entry["main"]["temp"]
             desc = entry["weather"][0]["description"]
-            forecast_output += f"<li><strong>{dt_txt}:</strong> {desc.capitalize()}, {temp:.1f}°C</li>"
-            dates_added.add(dt_txt)
+            forecast_output += f"<li><strong>{date}:</strong> {desc.capitalize()}, {temp:.1f}°C</li>"
+            dates_added.add(date)
         if len(dates_added) >= 5:
             break
 
@@ -45,10 +43,10 @@ def send_email(to_list, subject, body):
     msg["Subject"] = subject
     msg.attach(MIMEText(body, "html"))
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
-        smtp.starttls()
-        smtp.login(EMAIL, EMAIL_PASSWORD)
-        smtp.sendmail(EMAIL, to_list, msg.as_string())
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(EMAIL, EMAIL_PASSWORD)
+        server.sendmail(EMAIL, to_list, msg.as_string())
 
 def main():
     df = pd.read_csv("maillist.csv")
