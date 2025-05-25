@@ -42,10 +42,11 @@ def main():
         msg.attach(MIMEText(body, "html"))
 
         try:
-            with smtplib.SMTP('smtp.office365.com', 587) as server:
-                server.starttls()
-                server.login(EMAIL, EMAIL_PASSWORD)
-                server.sendmail(EMAIL, to_list, msg.as_string())
+
+            with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+                smtp.starttls()
+                smtp.login(EMAIL, EMAIL_PASSWORD)
+                smtp.send_message(msg)
                 print(f"{sehir} için mail gönderildi.")
         except Exception as e:
             print(f"{sehir} için mail gönderilemedi: {str(e)}")
