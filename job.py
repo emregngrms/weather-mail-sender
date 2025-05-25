@@ -15,6 +15,10 @@ def get_forecast(city):
     response = requests.get(url)
     data = response.json()
 
+
+      # Bu satırı geçici olarak ekleyip sonucu GitHub Actions'ta göreceğiz
+    print("API cevabı:", data)
+    
     if "list" not in data:
         return f"{city} için hava durumu alınamadı: {data.get('message', 'Bilinmeyen hata')}"
 
