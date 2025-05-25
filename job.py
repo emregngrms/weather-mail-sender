@@ -16,6 +16,8 @@ def get_forecast(city):
 
     if "forecast" not in data:
         return f"{city} için hava durumu alınamadı: {data.get('error', {}).get('info', 'Bilinmeyen hata')}"
+    
+    # Devamındaki veriyi işleme kısmı burada olur
 
     forecast_data = data["forecast"]
     output = f"<h2>{city} - 7 Günlük Hava Durumu</h2><ul>"
