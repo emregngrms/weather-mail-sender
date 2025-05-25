@@ -5,53 +5,60 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-API_KEY = os.getenv("WEATHERSTACK_API_KEY")
+# Ortam değişkenlerini al
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
 EMAIL = os.getenv("EMAIL")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 def get_forecast(city):
-    url = f"http://api.weatherstack.com/forecast?access_key={API_KEY}&query={city}&forecast_days=7&units=m"
+    url = f"https://api.openweathermap.org/data/2.5/forecast?q={city},TR&appid={API_KEY}&units=metric&lang=tr"
     response = requests.get(url)
     data = response.json()
 
-    if "forecast" not in data:
-        return f"{city} için hava durumu alınamadı: {data.get('error', {}).get('info', 'Bilinmeyen hata')}"
-    
-    # Devamındaki veriyi işleme kısmı burada olur
+    if "list" not in data:
+        return f"{city} için hava durumu alınamadı: {data.get('message', 'Bilinmeyen hata')}"
 
-    forecast_data = data["forecast"]
-    output = f"<h2>{city} - 7 Günlük Hava Durumu</h2><ul>"
-    for date, day_data in forecast_data.items():
-        desc = day_data['weather_descriptions'][0] if 'weather_descriptions' in day_data else 'Açıklama yok'
-        temp = day_data['avgtemp']
-        output += f"<li><strong>{date}:</strong> {desc}, Ortalama Sıcaklık: {temp}°C</li>"
-    output += "</ul>"
-    return output
+    forecast_output = f"<h2>{city} - 5 Günlük Hava Durumu</h2><ul>"
+    dates_added = set()
+
+    for entry in data["list"]:
+        dt_txt = entry["dt_txt"].split(" ")[0]
+        if dt_txt not in dates_added:
+            temp = entry["main"]["temp"]
+            desc = entry["weather"][0]["description"]
+            forecast_output += f"<li><strong>{dt_txt}:</strong> {desc.capitalize()}, {temp:.1f}°C</li>"
+            dates_added.add(dt_txt)
+        if len(dates_added) >= 5:
+            break
+
+    forecast_output += "</ul>"
+    return forecast_output
+
+def send_email(to_list, subject, body):
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL
+    msg["To"] = ", ".join(to_list)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "html"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+        smtp.starttls()
+        smtp.login(EMAIL, EMAIL_PASSWORD)
+        smtp.sendmail(EMAIL, to_list, msg.as_string())
 
 def main():
     df = pd.read_csv("maillist.csv")
-    grouped = df.groupby("sehir")
+    grouped = df.groupby("sehir")["email"].apply(list).to_dict()
 
-    for sehir, group in grouped:
-        to_list = group["email"].tolist()
-        body = get_forecast(sehir)
-
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL
-        msg["To"] = ", ".join(to_list)
-        msg["Subject"] = f"{sehir} için 7 Günlük Hava Durumu"
-
-        msg.attach(MIMEText(body, "html"))
-
+    for city, emails in grouped.items():
         try:
-
-            with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
-                smtp.starttls()
-                smtp.login(EMAIL, EMAIL_PASSWORD)
-                smtp.send_message(msg)
-                print(f"{sehir} için mail gönderildi.")
+            print(f"{city} için hava durumu alınıyor...")
+            body = get_forecast(city)
+            subject = f"{city} için 5 Günlük Hava Durumu"
+            send_email(emails, subject, body)
+            print(f"{city} için mail gönderildi.")
         except Exception as e:
-            print(f"{sehir} için mail gönderilemedi: {str(e)}")
+            print(f"{city} için hata oluştu: {e}")
 
 if __name__ == "__main__":
     main()
